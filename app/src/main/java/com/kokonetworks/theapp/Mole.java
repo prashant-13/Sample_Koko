@@ -11,7 +11,7 @@ class Mole {
 
     private int currentLevel = 0;
     private long startTimeForLevel;
-    private final int[] LEVELS = new int[]{1000,900,800,700,600,500,400,300,200,100};
+    private final int[] LEVELS = new int[]{1000, 900, 800, 700, 600, 500, 400, 300, 200, 100};
     private final long LEVEL_DURATION_MS = 10000;
 
     ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
@@ -21,36 +21,51 @@ class Mole {
         this.field = field;
     }
 
-    public void startHopping(){
+    public void startHopping() {
         field.getListener().onLevelChange(getCurrentLevel());
         startTimeForLevel = System.currentTimeMillis();
 
         future = scheduledExecutorService.scheduleAtFixedRate(() -> {
             field.setActive(nextHole());
 
-            if(System.currentTimeMillis()-startTimeForLevel >= LEVEL_DURATION_MS && getCurrentLevel() < LEVELS.length){
+            field.updateTimer(LEVEL_DURATION_MS - (System.currentTimeMillis() - startTimeForLevel));
+            if (System.currentTimeMillis() - startTimeForLevel >= LEVEL_DURATION_MS && getCurrentLevel() < LEVELS.length) {
                 nextLevel();
             }
-        },LEVELS[currentLevel], LEVELS[currentLevel], TimeUnit.MILLISECONDS);
+        }, LEVELS[currentLevel], LEVELS[currentLevel], TimeUnit.MILLISECONDS);
     }
 
-    public void stopHopping(){
+    public void resumeHopping() {
+        field.getListener().onLevelChange(getCurrentLevel());
+        startTimeForLevel = System.currentTimeMillis();
+
+        future = scheduledExecutorService.scheduleAtFixedRate(() -> {
+            field.setActive(nextHole());
+
+            field.updateTimer(LEVEL_DURATION_MS - (System.currentTimeMillis() - startTimeForLevel));
+            if (System.currentTimeMillis() - startTimeForLevel >= LEVEL_DURATION_MS && getCurrentLevel() < LEVELS.length) {
+                nextLevel();
+            }
+        }, LEVELS[currentLevel], LEVELS[currentLevel], TimeUnit.MILLISECONDS);
+    }
+
+    public void stopHopping() {
         future.cancel(false);
     }
 
-    private void nextLevel(){
+    private void nextLevel() {
         currentLevel++;
         future.cancel(false);
         startHopping();
     }
 
-    public int getCurrentLevel(){
-        return currentLevel+1;
+    public int getCurrentLevel() {
+        return currentLevel + 1;
     }
 
-    private int nextHole(){
-        int hole = new Random().nextInt(field.totalCircles()-1);
-        if(hole == field.getCurrentCircle()){
+    private int nextHole() {
+        int hole = new Random().nextInt(field.totalCircles());
+        if (hole == field.getCurrentCircle()) {
             return nextHole();
         }
         return hole;
